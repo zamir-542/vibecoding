@@ -1,28 +1,28 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Database setup
-const dbPath = path.join(__dirname, 'database.sqlite');
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Error opening database', err.message);
-    } else {
-        console.log('Connected to the SQLite database.');
-        db.run(`CREATE TABLE IF NOT EXISTS posts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            content TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )`, (err) => {
-            if (err) {
-                console.error('Error creating table', err.message);
-            }
-        });
-    }
+// PostgreSQL connection — Railway sets DATABASE_URL automatically
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+});
+
+// Create table on startup if it doesn't exist
+pool.query(`
+    CREATE TABLE IF NOT EXISTS posts (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    )
+`).then(() => {
+    console.log('Database ready.');
+}).catch(err => {
+    console.error('Error setting up database:', err.message);
 });
 
 app.use(express.json());
@@ -53,62 +53,59 @@ const basicAuth = (req, res, next) => {
 
 // Admin page Route (Protected)
 app.get('/admin', basicAuth, (req, res) => {
-    // Serve the admin page HTML
     res.sendFile(path.join(__dirname, 'views', 'admin.html'));
 });
 
-// Admin script and styles can just be served statically since they don't contain sensitive data,
-// but we just put them in public and the admin.html references them, or inline them.
-// Let's create specific routes to prevent caching or we just inline the CSS/JS for admin to be simpler.
-
 // API Routes
 // Get all posts - Public
-app.get('/api/posts', (req, res) => {
-    db.all(`SELECT * FROM posts ORDER BY created_at DESC`, [], (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json(rows);
-    });
+app.get('/api/posts', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM posts ORDER BY created_at DESC');
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Create a post (Protected)
-app.post('/api/posts', basicAuth, (req, res) => {
+app.post('/api/posts', basicAuth, async (req, res) => {
     const { title, content } = req.body;
     if (!title || !content) {
         return res.status(400).json({ error: 'Title and content are required' });
     }
-    db.run(`INSERT INTO posts (title, content) VALUES (?, ?)`, [title, content], function(err) {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.status(201).json({ id: this.lastID, title, content });
-    });
+    try {
+        const result = await pool.query(
+            'INSERT INTO posts (title, content) VALUES ($1, $2) RETURNING *',
+            [title, content]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Update a post (Protected)
-app.put('/api/posts/:id', basicAuth, (req, res) => {
+app.put('/api/posts/:id', basicAuth, async (req, res) => {
     const { title, content } = req.body;
-    db.run(`UPDATE posts SET title = ?, content = ? WHERE id = ?`, [title, content, req.params.id], function(err) {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
+    try {
+        await pool.query(
+            'UPDATE posts SET title = $1, content = $2 WHERE id = $3',
+            [title, content, req.params.id]
+        );
         res.json({ message: 'Post updated' });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Delete a post (Protected)
-app.delete('/api/posts/:id', basicAuth, (req, res) => {
-    db.run(`DELETE FROM posts WHERE id = ?`, req.params.id, function(err) {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
+app.delete('/api/posts/:id', basicAuth, async (req, res) => {
+    try {
+        await pool.query('DELETE FROM posts WHERE id = $1', [req.params.id]);
         res.json({ message: 'Post deleted' });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.listen(PORT, () => {
