@@ -1,0 +1,16 @@
+{
+  "name": "belajar-melukis-ebook",
+  "version": "1.0.0",
+  "description": "Landing page + Netlify Functions webhook untuk jualan e-book Belajar Melukis Semudah ABC",
+  "private": true,
+  "scripts": {
+    "dev": "netlify dev",
+    "deploy": "netlify deploy --prod"
+  },
+  "dependencies": {
+    "resend": "^3.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

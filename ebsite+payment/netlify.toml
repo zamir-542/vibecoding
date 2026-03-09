@@ -1,0 +1,25 @@
+# ============================================================
+# Netlify Configuration — Belajar Melukis Semudah ABC
+# ============================================================
+
+[build]
+  # Folder yang akan di-publish (fail HTML/CSS)
+  publish = "."
+
+  # Folder yang mengandungi Netlify Functions
+  functions = "netlify/functions"
+
+# ---- Redirect untuk API endpoint yang lebih cantik (pilihan) ----
+# Membolehkan penggunaan /api/payment-webhook
+# sebagai ganti /.netlify/functions/payment-webhook
+[[redirects]]
+  from = "/api/payment-webhook"
+  to   = "/.netlify/functions/payment-webhook"
+  status = 200
+
+# ---- Environment variables (isi nilai sebenar di Netlify Dashboard) ----
+# JANGAN letak nilai sebenar di sini — gunakan Netlify Dashboard > Site Settings > Environment Variables
+# [build.environment]
+#   RESEND_API_KEY       = ""   # Isi di Netlify Dashboard
+#   FROM_EMAIL           = ""   # Contoh: noreply@yourdomain.com
+#   EBOOK_DOWNLOAD_URL   = ""   # URL PDF ebook sebenar
