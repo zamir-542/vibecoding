@@ -8,16 +8,17 @@ object JakimZoneMapper {
         // District is usually subAdminArea, State is adminArea
         val state = address.adminArea?.lowercase() ?: ""
         val district = address.subAdminArea?.lowercase() ?: ""
+        val locality = address.locality?.lowercase() ?: ""
+        val subLocality = address.subLocality?.lowercase() ?: ""
+        val fullLocationInfo = "$district $locality $subLocality"
         
         return when {
-            state.contains("kuala lumpur") -> "WLT01"
-            state.contains("putrajaya") -> "WLT01"
-            state.contains("labuan") -> "WLT01"
+            state.contains("kuala lumpur") || state.contains("putrajaya") || state.contains("labuan") -> "WLT01"
             
             state.contains("selangor") -> {
                 when {
-                    district.contains("klang") || district.contains("kuala langat") -> "SGR02"
-                    district.contains("kuala selangor") || district.contains("sabak bernam") -> "SGR03"
+                    fullLocationInfo.contains("klang") || fullLocationInfo.contains("kuala langat") -> "SGR03"
+                    fullLocationInfo.contains("kuala selangor") || fullLocationInfo.contains("sabak bernam") -> "SGR02"
                     else -> "SGR01" // Gombak, Petaling, Sepang, Hulu Langat, Hulu Selangor, S.Alam
                 }
             }
