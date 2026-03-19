@@ -20,9 +20,9 @@ A simple, battery-friendly Android application built with Jetpack Compose that d
 - **Background Tasks**: AlarmManager, BroadcastReceivers
 - **Storage**: SharedPreferences
 
-## How to Run
+## How to Install
 
-1. Clone this repository to your local machine.
-2. Open the `android_app` folder in Android Studio.
-3. Sync the Gradle project.
-4. Run the app on an Android emulator or a physical device.
+1. Navigate to the **Releases** tab on the right side of this GitHub repository.
+2. Download the latest `PryrTm.apk` file to your Android device.
+3. Tap the downloaded file to install it. (You may need to enable "Install from unknown sources" in your security settings).
+4. Launch the app and enjoy!
