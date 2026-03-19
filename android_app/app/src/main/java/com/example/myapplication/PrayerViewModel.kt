@@ -26,8 +26,28 @@ class PrayerViewModel(application: Application) : AndroidViewModel(application) 
     var notifyEnabled by mutableStateOf(prefs.getBoolean("notify_enabled", false))
         private set
 
-    var notifyMinutes by mutableStateOf(prefs.getInt("notify_minutes", 10))
+    var autoLocationEnabled by mutableStateOf(prefs.getBoolean("auto_location_enabled", false))
         private set
+
+    var notifyMinutes by mutableStateOf(prefs.getInt("notify_minutes", 10))
+    var hijriDate by mutableStateOf(prefs.getString("hijri", "") ?: "")
+    var gregorianDate by mutableStateOf(prefs.getString("date", "") ?: "")
+
+    private fun formatHijri(hijriStr: String): String {
+        val parts = hijriStr.split("-")
+        if (parts.size == 3) {
+            val year = parts[0]
+            val monthIdx = parts[1].toIntOrNull() ?: 1
+            val day = parts[2].toIntOrNull() ?: 1
+            val months = listOf("", "Muharram", "Safar", "Rabiulawal", "Rabiulakhir", "Jamadilawal", "Jamadilakhir", "Rejab", "Syaaban", "Ramadan", "Syawal", "Zulkaedah", "Zulhijjah")
+            val monthName = if (monthIdx in 1..12) months[monthIdx] else ""
+            return "$day $monthName ${year}H"
+        }
+        return hijriStr
+    }
+
+    val displayHijri: String
+        get() = formatHijri(hijriDate)
 
     var prayerTimes by mutableStateOf<JakimPrayerTime?>(null)
         private set
@@ -55,6 +75,19 @@ class PrayerViewModel(application: Application) : AndroidViewModel(application) 
         prefs.edit().putString("zone", zone).apply()
         currentZone = zone
         fetchPrayerTimes(forceRefresh = true)
+    }
+
+    fun setAutoLocation(enabled: Boolean) {
+        prefs.edit().putBoolean("auto_location_enabled", enabled).apply()
+        autoLocationEnabled = enabled
+        if (enabled) {
+            viewModelScope.launch {
+                val newZone = LocationHelper.getAutomatedZone(getApplication())
+                if (newZone != null && newZone != currentZone) {
+                    setZone(newZone)
+                }
+            }
+        }
     }
 
     fun setNotifications(enabled: Boolean, minutes: Int) {
@@ -85,6 +118,8 @@ class PrayerViewModel(application: Application) : AndroidViewModel(application) 
                 if (response.prayerTime.isNotEmpty()) {
                     val p = response.prayerTime[0]
                     prayerTimes = p
+                    hijriDate = p.hijri
+                    gregorianDate = p.date
                     
                     if (notifyEnabled) {
                         PrayerAlarmScheduler.scheduleAlarms(getApplication(), p, notifyMinutes)
@@ -93,6 +128,9 @@ class PrayerViewModel(application: Application) : AndroidViewModel(application) 
                     
                     // Automatically cache times for the Home Screen Widget
                     prefs.edit().apply {
+                        putString("hijri", p.hijri)
+                        putString("formatted_hijri", formatHijri(p.hijri))
+                        putString("date", p.date)
                         putString("subuh", p.fajr)
                         putString("syuruk", p.syuruk)
                         putString("zohor", p.dhuhr)

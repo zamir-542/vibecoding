@@ -18,7 +18,19 @@ class WidgetUpdateReceiver : BroadcastReceiver() {
             try {
                 if (intent.action == "com.example.myapplication.ACTION_REFRESH_API") {
                     val prefs = context.getSharedPreferences("waktu_solat_prefs", Context.MODE_PRIVATE)
-                    val zone = prefs.getString("zone", "SGR01") ?: "SGR01"
+                    val autoLoc = prefs.getBoolean("auto_location_enabled", false)
+                    val zone = if (autoLoc) {
+                        try {
+                            val newZone = LocationHelper.getAutomatedZone(context)
+                            if (newZone != null) {
+                                prefs.edit().putString("zone", newZone).apply()
+                                newZone
+                            } else prefs.getString("zone", "SGR01") ?: "SGR01"
+                        } catch(e: Exception) { prefs.getString("zone", "SGR01") ?: "SGR01" }
+                    } else {
+                        prefs.getString("zone", "SGR01") ?: "SGR01"
+                    }
+                    
                     try {
                         val retrofit = retrofit2.Retrofit.Builder()
                             .baseUrl("https://www.e-solat.gov.my/")
@@ -28,7 +40,21 @@ class WidgetUpdateReceiver : BroadcastReceiver() {
                         val response = api.getPrayerTimes(zone = zone)
                         if (response.prayerTime.isNotEmpty()) {
                             val p = response.prayerTime[0]
+                            
+                            val parts = p.hijri.split("-")
+                            val formattedHijri = if (parts.size == 3) {
+                                val year = parts[0]
+                                val monthIdx = parts[1].toIntOrNull() ?: 1
+                                val day = parts[2].toIntOrNull() ?: 1
+                                val months = listOf("", "Muharram", "Safar", "Rabiulawal", "Rabiulakhir", "Jamadilawal", "Jamadilakhir", "Rejab", "Syaaban", "Ramadan", "Syawal", "Zulkaedah", "Zulhijjah")
+                                val monthName = if (monthIdx in 1..12) months[monthIdx] else ""
+                                "$day $monthName ${year}H"
+                            } else p.hijri
+                            
                             prefs.edit().apply {
+                                putString("hijri", p.hijri)
+                                putString("formatted_hijri", formattedHijri)
+                                putString("date", p.date)
                                 putString("imsak", p.imsak)
                                 putString("subuh", p.fajr)
                                 putString("syuruk", p.syuruk)
@@ -37,7 +63,7 @@ class WidgetUpdateReceiver : BroadcastReceiver() {
                                 putString("maghrib", p.maghrib)
                                 putString("isyak", p.isha)
                             }.apply()
-                            val pt = JakimPrayerTime("", "", "", p.imsak, p.fajr, p.syuruk, p.dhuhr, p.asr, p.maghrib, p.isha)
+                            val pt = JakimPrayerTime(p.hijri, p.date, p.day, p.imsak, p.fajr, p.syuruk, p.dhuhr, p.asr, p.maghrib, p.isha)
                             val notifyEnabled = prefs.getBoolean("notify_enabled", false)
                             val notifyMinutes = prefs.getInt("notify_minutes", 10)
                             if (notifyEnabled) {

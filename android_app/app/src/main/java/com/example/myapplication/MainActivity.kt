@@ -168,6 +168,15 @@ fun PrayerScreen(viewModel: PrayerViewModel) {
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                 )
+                if (viewModel.displayHijri.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = viewModel.displayHijri,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
 
@@ -408,25 +417,59 @@ fun SettingsScreen(viewModel: PrayerViewModel) {
             )
         }
 
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val locationPermLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission()
+        ) { isGranted ->
+            if (isGranted) viewModel.setAutoLocation(true)
+            else viewModel.setAutoLocation(false)
+        }
+
         Spacer(Modifier.height(40.dp))
 
-        Text("Lokasi (Zon Jakim)", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.height(16.dp))
-        
-        OutlinedButton(
-            onClick = { 
-                viewingState = null // Reset back to showing States when opened
-                showZoneDialog = true 
-            },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Text("Lokasi Automatik (GPS)", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            Switch(
+                checked = viewModel.autoLocationEnabled,
+                onCheckedChange = { enabled ->
+                    if (enabled) locationPermLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+                    else viewModel.setAutoLocation(false)
+                }
+            )
+        }
+        
+        Spacer(Modifier.height(8.dp))
+
+        if (!viewModel.autoLocationEnabled) {
+            Text("Lokasi (Zon Manual Jakim)", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = { 
+                    viewingState = null // Reset back to showing States when opened
+                    showZoneDialog = true 
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                val allZonesFlat = groupedZones.values.flatten()
+                val currentZoneName = allZonesFlat.find { it.first == viewModel.currentZone }?.second ?: ""
+                Text(
+                    text = "${viewModel.currentZone} - $currentZoneName",
+                    modifier = Modifier.padding(8.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
             val allZonesFlat = groupedZones.values.flatten()
             val currentZoneName = allZonesFlat.find { it.first == viewModel.currentZone }?.second ?: ""
             Text(
-                text = "${viewModel.currentZone} - $currentZoneName",
-                modifier = Modifier.padding(8.dp),
-                textAlign = TextAlign.Center
+                text = "Zon Aktif: ${viewModel.currentZone} - $currentZoneName",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 

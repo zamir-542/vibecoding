@@ -67,6 +67,10 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
     implementation(libs.work.ktx)
+    
+    // GPS Auto-Location
+    implementation("com.google.android.gms:play-services-location:21.2.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

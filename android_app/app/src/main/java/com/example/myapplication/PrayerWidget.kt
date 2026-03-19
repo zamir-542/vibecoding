@@ -30,8 +30,7 @@ import android.content.Intent
 class PrayerWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val prefs = context.getSharedPreferences("waktu_solat_prefs", Context.MODE_PRIVATE)
-        val zone = prefs.getString("zone", "SGR01") ?: "SGR01"
-        
+
         // Load the actual cached times, fallback to placeholders if user hasn't opened app yet
         val subuh = prefs.getString("subuh", "05:45")?.take(5) ?: "05:45"
         val syuruk = prefs.getString("syuruk", "07:10")?.take(5) ?: "07:10"
@@ -45,7 +44,6 @@ class PrayerWidget : GlanceAppWidget() {
         val currentSecs = now.get(java.util.Calendar.HOUR_OF_DAY) * 3600 + now.get(java.util.Calendar.MINUTE) * 60 + now.get(java.util.Calendar.SECOND)
         
         var nextPrayerName = "Subuh"
-        var nextPrayerTimeStr = subuh
         var found = false
         var diffMillis = 0L
         val pList = listOf("Subuh" to subuh, "Syuruk" to syuruk, "Zohor" to zohor, "Asar" to asar, "Maghrib" to maghrib, "Isyak" to isyak)
@@ -56,7 +54,6 @@ class PrayerWidget : GlanceAppWidget() {
                 val pSecs = parts[0].toInt() * 3600 + parts[1].toInt() * 60
                 if (pSecs > currentSecs) {
                     nextPrayerName = name
-                    nextPrayerTimeStr = timeStr
                     diffMillis = (pSecs - currentSecs) * 1000L
                     found = true
                     break
@@ -72,7 +69,6 @@ class PrayerWidget : GlanceAppWidget() {
                 diffMillis = (tomorrowSecs - currentSecs) * 1000L
             }
             nextPrayerName = "Subuh"
-            nextPrayerTimeStr = subuh
         }
 
         provideContent {
@@ -111,8 +107,11 @@ class PrayerWidget : GlanceAppWidget() {
                             ).padding(end = 8.dp)
                         )
                         
+                        val hijriText = prefs.getString("formatted_hijri", "") ?: ""
+                        val headerText = if (hijriText.isNotEmpty()) "$hijriText • " else ""
+                        
                         Text(
-                            text = "$zone • Seterusnya: $nextPrayerName ($nextPrayerTimeStr)  ",
+                            text = "${headerText}Waktu seterusnya:  ",
                             style = TextStyle(
                                 color = highlightColor, 
                                 fontWeight = FontWeight.Bold,
