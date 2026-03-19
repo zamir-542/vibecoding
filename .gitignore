@@ -4,3 +4,16 @@ node_modules/
 *.db
 database.sqlite
 staged_diff.txt
+
+# Android and Gradle
+*.iml
+.gradle/
+.idea/
+local.properties
+build/
+*/build/
+captures/
+.externalNativeBuild
+.cxx
+*.apk
+*.hprof
