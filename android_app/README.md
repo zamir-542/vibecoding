@@ -28,3 +28,13 @@ A simple, battery-friendly Android application built with Jetpack Compose that d
 2. Download the latest `PryrTm.apk` file to your Android device.
 3. Tap the downloaded file to install it. (You may need to enable "Install from unknown sources" in your security settings).
 4. Launch the app and enjoy!
+## Project History & Status
+
+- **Development Status**: Active.
+- **Key Implementation Notes for Future Agents**:
+    - **GPS Auto-Location**: Uses `FusedLocationProviderClient` for battery-efficient location retrieval. `JakimZoneMapper.kt` handles the mapping between Android Geocoder addresses and JAKIM zone codes (e.g., SGR01).
+    - **Hijri Engine**: The app fetches raw Hijri dates from the JAKIM API (formatted as `YYYY-MM-DD`) and applies a native Kotlin formatter in `PrayerViewModel` to convert them to traditional Malay names (e.g., "Ramadan 1445H").
+    - **Dual Notifications**: `PrayerAlarmScheduler.kt` schedules two alarms per prayer (Pre-warning - default 10min, and Exact time). Alarms are scheduled via `AlarmManager` for reliability.
+    - **Widget System**: Built with `Jetpack Glance`. Uses a native `Chronometer` inside an XML layout (`res/layout/chronometer.xml`) to provide a zero-battery-drain live countdown on the home screen.
+    - **Build System**: Configured to automatically output the final APK as `PryrTm.apk` located in `./app/build/outputs/apk/debug/`.
+- **Last Milestone**: Fixed Selangor Zone 3 (Klang) GPS mapping accuracy on 2026-03-19.
